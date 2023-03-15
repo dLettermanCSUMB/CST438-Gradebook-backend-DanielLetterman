@@ -65,5 +65,27 @@ public class Assignment {
 		return "Assignment [id=" + id + ", course_id=" + course.getCourse_id() + ", name=" + name + ", dueDate=" + dueDate
 				+ ", needsGrading=" + needsGrading + "]";
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Assignment other = (Assignment) obj;
+		if (id != other.id)
+			return false;
+		if (course != other.course)
+			return false;
+		if (!name.equals(other.name))
+			return false;
+		if (!dueDate.equals(other.dueDate))
+			return false;
+		if (needsGrading != other.needsGrading)
+			return false;
+		return true;
+	}
 	
 }
