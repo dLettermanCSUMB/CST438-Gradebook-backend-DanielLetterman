@@ -1,5 +1,8 @@
 package com.cst438.controllers;
 
+import java.sql.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +29,8 @@ import com.cst438.domain.CourseRepository;
 import com.cst438.domain.Enrollment;
 import com.cst438.domain.GradebookDTO;
 import com.cst438.services.RegistrationService;
+
+import static java.util.Objects.isNull;
 
 @RestController
 @CrossOrigin(origins = {"http://localhost:3000","http://localhost:3001"})
@@ -155,6 +160,59 @@ public class GradeBookController {
 		}
 		
 	}
+
+	@PutMapping("/gradebook/createAssignment/{course_id}")
+	@Transactional
+	public void createAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignment, @PathVariable("course_id") int courseId) {
+
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email)
+
+		Assignment a = new Assignment();
+		Course c = courseRepository.findByInstructorAndId(email, courseId).get(0);
+
+		DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+		LocalDate ld = LocalDate.parse(assignment.dueDate, formatter);
+		Date d = Date.valueOf(ld);
+
+		a.setName(assignment.assignmentName);
+		a.setCourse(c);
+		a.setDueDate(d);
+
+		if ( isNull(a.getName()) ) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST , "Assignment needs a name!. ");
+		} else if ( isNull(a.getDueDate()) ) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST , "Assignment needs a due date!. ");
+		} else {
+			assignmentRepository.save(a);
+		}
+	}
+
+	@PutMapping("/gradebook/deleteAssignment/{id}")
+	@Transactional
+	public void deleteAssignment(@PathVariable("id") int id) {
+
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email)
+		Assignment a = checkAssignment(id, email);
+
+		if (assignmentGradeRepository.getGradedAssignmentCountByAssignmentId(id) > 0) {
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST , "Assignment has grades!. "+id );
+		} else {
+			assignmentRepository.deleteById(id);
+		}
+	}
+
+	@PutMapping("/gradebook/renameAssignment/{id}")
+	@Transactional
+	public void renameAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignment, @PathVariable("id") int id) {
+
+		String email = "dwisneski@csumb.edu";
+		Assignment a = checkAssignment(id, email);
+
+		a.setName(assignment.assignmentName);
+
+		assignmentRepository.save(a);
+	}
+
 	
 	private Assignment checkAssignment(int assignmentId, String email) {
 		// get assignment 

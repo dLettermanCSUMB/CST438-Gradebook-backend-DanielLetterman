@@ -1,8 +1,11 @@
 package com.cst438;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 
+import com.cst438.domain.*;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,17 +20,14 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.sql.Date;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import com.cst438.controllers.GradeBookController;
-import com.cst438.domain.Assignment;
-import com.cst438.domain.AssignmentGrade;
-import com.cst438.domain.AssignmentGradeRepository;
-import com.cst438.domain.AssignmentRepository;
-import com.cst438.domain.Course;
-import com.cst438.domain.CourseRepository;
-import com.cst438.domain.Enrollment;
-import com.cst438.domain.GradebookDTO;
 import com.cst438.services.RegistrationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -242,6 +242,129 @@ public class JunitTestGradebook {
 		updatedag.setScore("88");
 		verify(assignmentGradeRepository, times(1)).save(updatedag);
 	}
+
+	@Test
+	public void createAssignment() throws Exception {
+
+		MockHttpServletResponse response;
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		List<Course> courses = new ArrayList<Course>();
+		courses.add(course);
+
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+
+		String dateStr = "1991-12-25";
+		DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+		LocalDate ld = LocalDate.parse(dateStr, formatter);
+		Date d = Date.valueOf(ld);
+
+		assignment.setDueDate(d);
+		assignment.setName("Assignment 1");
+
+
+		AssignmentListDTO.AssignmentDTO assignmentDTO = new AssignmentListDTO.AssignmentDTO(0, course.getCourse_id(),
+				assignment.getName(), dateStr, course.getTitle());
+
+		given(courseRepository.findByInstructorAndId(course.getInstructor(), course.getCourse_id())).willReturn(courses);
+
+		response = mvc
+						.perform(MockMvcRequestBuilders.put("/gradebook/createAssignment/"+TEST_COURSE_ID).accept(MediaType.APPLICATION_JSON)
+						.content(asJsonString(assignmentDTO)).contentType(MediaType.APPLICATION_JSON))
+						.andReturn().getResponse();
+
+		assertEquals(200, response.getStatus());
+
+		verify(assignmentRepository, times(1)).save(assignment);
+	}
+
+	@Test
+	public void deleteAssignment() throws Exception {
+
+		MockHttpServletResponse response;
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+		// set dueDate to 1 week before now.
+		assignment.setDueDate(new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000));
+		assignment.setId(1);
+		assignment.setName("Assignment 1");
+		assignment.setNeedsGrading(0);
+
+		given(assignmentRepository.findById(1)).willReturn(Optional.of(assignment));
+
+		response = mvc.perform(MockMvcRequestBuilders.put("/gradebook/deleteAssignment/"+"1").accept(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+
+		assertEquals(200, response.getStatus());
+
+		verify(assignmentRepository).deleteById(assignment.getId());
+	}
+
+	@Test
+	public void renameAssignment() throws Exception {
+
+		MockHttpServletResponse response;
+
+		Course course = new Course();
+		course.setCourse_id(TEST_COURSE_ID);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setEnrollments(new java.util.ArrayList<Enrollment>());
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+
+		Assignment assignment = new Assignment();
+		assignment.setCourse(course);
+
+		String dateStr = "1991-12-25";
+		DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+		LocalDate ld = LocalDate.parse(dateStr, formatter);
+		Date d = Date.valueOf(ld);
+		assignment.setDueDate(d);
+
+		course.getAssignments().add(assignment);
+		assignment.setId(1);
+		assignment.setName("Assignment 1");
+
+		AssignmentListDTO.AssignmentDTO assignmentDTO = new AssignmentListDTO.AssignmentDTO(1, course.getCourse_id(),
+				"Tarea Uno", dateStr, course.getTitle());
+
+		given(assignmentRepository.findById(1)).willReturn(Optional.of(assignment));
+
+		assertNotEquals(assignment.getName(), assignmentDTO.assignmentName);
+
+		response = mvc.perform(MockMvcRequestBuilders.put("/gradebook/renameAssignment/"+"1").accept(MediaType.APPLICATION_JSON)
+						.content(asJsonString(assignmentDTO)).contentType(MediaType.APPLICATION_JSON))
+						.andReturn().getResponse();
+
+		assertEquals(200, response.getStatus());
+
+		assignment.setName("Tarea Uno");
+
+		verify(assignmentRepository, times(1)).save(assignment);
+	}
+
+
+
 
 	private static String asJsonString(final Object obj) {
 		try {
