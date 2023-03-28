@@ -204,7 +204,7 @@ public class GradeBookController {
 	public void deleteAssignment(@PathVariable("id") int id) {
 
 		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email)
-		a = checkAssignment(id, email);
+		Assignment a = checkAssignment(id, email);
 
 		if (assignmentGradeRepository.getGradedAssignmentCountByAssignmentId(id) > 0) {
 			throw new ResponseStatusException( HttpStatus.BAD_REQUEST , "Assignment has grades!. "+id );

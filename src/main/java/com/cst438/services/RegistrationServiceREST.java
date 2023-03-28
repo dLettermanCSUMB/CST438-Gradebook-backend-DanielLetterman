@@ -10,7 +10,7 @@ public class RegistrationServiceREST extends RegistrationService {
 	
 	RestTemplate restTemplate = new RestTemplate();
 	
-	@Value("${registration.url}") 
+	@Value("${registration.url}")
 	String registration_url;
 	
 	public RegistrationServiceREST() {
@@ -18,9 +18,11 @@ public class RegistrationServiceREST extends RegistrationService {
 	}
 	
 	@Override
-	public void sendFinalGrades(int course_id , CourseDTOG courseDTO) { 
-		
-		//TODO  complete this method in homework 4
-		
+	public void sendFinalGrades(int course_id , CourseDTOG courseDTOG) {
+
+		System.out.println("Sending final grades " + course_id + " " + courseDTOG);
+		restTemplate.put(registration_url + "/course/" + course_id, courseDTOG);
+		System.out.println("After sending final grades");
+
 	}
 }
